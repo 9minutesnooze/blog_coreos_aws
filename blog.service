@@ -1,0 +1,16 @@
+[Unit]
+Description=Blog
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill blog
+ExecStartPre=-/usr/bin/docker rm blog
+ExecStartPre=/usr/bin/docker pull aaronbbrown/blog
+ExecStart=/usr/bin/docker run --rm --name blog -p 8080:80 aaronbbrown/blog
+ExecStop=/usr/bin/docker stop blog
+
+[X-Fleet]
+Global=true
+MachineMetadata=region=us-east-1
