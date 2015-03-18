@@ -25,7 +25,7 @@
           },
 
           "us-east-1" : {
-              "AMI" : "ami-00158768"
+              "AMI" : "ami-343b195c"
           },
 
           "us-west-2" : {
@@ -183,7 +183,26 @@
             "    - name: etcd.service\n",
             "      command: start\n",
             "    - name: fleet.service\n",
-            "      command: start\n"
+            "      command: start\n",
+            "    - name: blog.service\n",
+            "      command: start\n",
+            "      content: |\n",
+            "        [Unit]\n",
+            "        Description=Blog\n",
+            "        After=docker.service\n",
+            "        Requires=docker.service\n",
+            "\n",
+            "        [Service]\n",
+            "        TimeoutStartSec=0\n",
+            "        ExecStartPre=-/usr/bin/docker kill blog\n",
+            "        ExecStartPre=-/usr/bin/docker rm blog\n",
+            "        ExecStartPre=/usr/bin/docker pull aaronbbrown/blog\n",
+            "        ExecStart=/usr/bin/docker run --rm --name blog -p 8080:80 aaronbbrown/blog\n",
+            "        ExecStop=/usr/bin/docker stop blog\n",
+            "\n",
+            "        [X-Fleet]\n",
+            "        Global=true\n",
+            "        MachineMetadata=region=", { "Ref" : "AWS::Region" }, "\n"
             ] ]
           }
         }
