@@ -46,7 +46,7 @@
     "AZs" : {
       "Description" : "Availability Zones to use (us-east-1a, us-east-1b, etc)",
       "Type" : "CommaDelimitedList",
-      "Default": "us-east-1a, us-east-1b, us-east-1d, us-east-1e"
+      "Default": "us-east-1a, us-east-1b, us-east-1e"
     },
     "InstanceType" : {
       "Description" : "EC2 PV instance type (m3.medium, etc). Note: m1.small is not supported.",
