@@ -271,51 +271,164 @@
         "SourceSecurityGroupId": { "Ref": "NatSecurityGroup" }
       }
     },
-    "NAT": {
-      "DependsOn": [ "PublicSubnet1", "NatSecurityGroup" ],
-      "Type": "AWS::EC2::Instance",
+
+    "NATIAMRole" : {
+      "Type": "AWS::IAM::Role",
       "Properties": {
-        "InstanceType": "t1.micro",
-        "KeyName": { "Ref": "KeyName" },
-        "SourceDestCheck": "false",
-        "ImageId": {
-          "Fn::FindInMap": [ "NatRegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
-        "NetworkInterfaces": [
-          {
-            "GroupSet": [ { "Ref": "NatSecurityGroup" } ],
-            "AssociatePublicIpAddress": "true",
-            "DeviceIndex": "0",
-            "DeleteOnTermination": "true",
-            "SubnetId": { "Ref": "PublicSubnet1" }
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [ {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": [ "ec2.amazonaws.com" ]
+            },
+            "Action": [ "sts:AssumeRole" ]
+          } ]
+        },
+        "Path": "/",
+        "Policies": [ {
+          "PolicyName" : "NATENI",
+          "PolicyDocument": {
+            "Version" : "2012-10-17",
+            "Statement": [ {
+              "Effect": "Allow",
+              "Action": [ "ec2:AttachNetworkInterface" ],
+              "Resource": [ "*" ]
+            } ]
           }
-        ],
-        "Tags": [
-          { "Key": "Name", "Value": "NAT" }
-        ],
-        "UserData": {
+        } ]
+      }
+    },
+
+    "NATInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref": "NATIAMRole" } ]
+      }
+    },
+
+
+    "NATENI" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "GroupSet" : [{ "Ref" : "NatSecurityGroup" }],
+        "SourceDestCheck" : "false",
+        "SubnetId" : { "Ref" : "PublicSubnet1" },
+        "Tags": [ { "Key": "Name", "Value": "NAT ENI" } ]
+      }
+    },
+
+    "NATEIP" : {
+      "Type" : "AWS::EC2::EIP",
+      "Properties" : { "Domain" : "vpc" }
+    },
+
+    "NATEIPAssociation" : {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": { "Fn::GetAtt": [ "NATEIP", "AllocationId" ] },
+        "NetworkInterfaceId": { "Ref" : "NATENI" }
+      }
+    },
+
+    "NATLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "DependsOn" : [ "NATIAMRole", "NATInstanceProfile", "GatewayToInternet" ],
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/etc/nat_eni.txt" : {
+                "content": { "Ref" : "NATENI" } ,
+                "mode": "0644",
+                "owner": "root",
+                "group": "root"
+              },
+              "/usr/local/bin/attach_eni.sh" : {
+                "mode": "0700",
+                "owner": "root",
+                "group": "root",
+                "content": {
+                  "Fn::Join": [ "",
+                  [
+                    "#!/bin/bash\n",
+                    "function log () {\n",
+                    "  echo \"$(date +'%b %e %T') $@\"\n",
+                    "  logger -- $(basename $0)\" - $@\"\n",
+                    "}\n",
+                    "\n",
+                    "my_instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
+                    "my_availability_zone=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)\n",
+                    "my_zone_letter=$(echo -n $my_availability_zone | tail -c -1)\n",
+                    "my_eni_id='", { "Ref" : "NATENI" }, "'\n",
+                    "export AWS_DEFAULT_REGION='", { "Ref" : "AWS::Region" }, "'\n",
+                    "/usr/bin/aws ec2 attach-network-interface --network-interface-id ${my_eni_id} --instance-id ${my_instance_id} --device-index 1\n",
+                    "retcode=$?\n",
+                    "[ \"$retcode\" -eq 0 ] && { log 'eni attachment successful' ; exit 0 ; } || { log 'eni attachment failed' ; exit 1 ; }\n"
+                  ]
+                ] }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "AssociatePublicIpAddress": "true",
+        "IamInstanceProfile": { "Ref": "NATInstanceProfile" },
+        "ImageId": { "Fn::FindInMap": [ "NatRegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
+        "InstanceType": "t1.micro",
+        "SpotPrice": "0.011",
+        "KeyName": {"Ref": "KeyName"},
+        "SecurityGroups": [{"Ref": "NatSecurityGroup"}],
+        "UserData" : {
           "Fn::Base64": {
             "Fn::Join": [ "",
-              [ "#!/bin/bash\n",
-                "yum update -y && yum install -y yum-cron && chkconfig yum-cron on" ]
+              [
+                "#!/bin/bash\n",
+                "yum update -y && yum install -y yum-cron && chkconfig yum-cron on\n",
+                "yum install -y aws-cli aws-cfn-bootstrap\n",
+                "/opt/aws/bin/cfn-init --region ", { "Ref" : "AWS::Region" },
+                        " --stack ", { "Ref" : "AWS::StackName" },
+                        " --resource NATLaunchConfig\n",
+                "/usr/local/bin/attach_eni.sh && sleep 60 && ifdown eth0\n"
+              ]
             ]
           }
         }
       }
     },
+
+    "NATASG": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones": [{ "Fn::GetAtt" : [ "PublicSubnet1", "AvailabilityZone" ] }],
+        "VPCZoneIdentifier": [{ "Ref" : "PublicSubnet1" }],
+        "LaunchConfigurationName": {"Ref": "NATLaunchConfig"},
+        "MinSize": "1",
+        "MaxSize": "1",
+        "DesiredCapacity": "1",
+        "Tags": [
+          { "Key": "Stack", "Value": { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": true },
+          { "Key": "Name", "Value": "NAT", "PropagateAtLaunch": true}
+        ]
+      }
+    },
+
     "PrivateRoute": {
-      "DependsOn": [ "PrivateRouteTable", "NAT" ],
+      "DependsOn": [ "PrivateRouteTable", "NATENI" ],
       "Type": "AWS::EC2::Route",
       "Properties": {
         "RouteTableId": { "Ref": "PrivateRouteTable" },
         "DestinationCidrBlock": "0.0.0.0/0",
-        "InstanceId": { "Ref": "NAT" }
+        "NetworkInterfaceId": { "Ref": "NATENI" }
       }
     }
   },
   "Outputs": {
     "NATIP": {
       "Description": "NAT IP address",
-      "Value": { "Fn::GetAtt": [ "NAT", "PublicIp" ] }
+      "Value": { "Ref": "NATEIP" }
     }
   }
 }
