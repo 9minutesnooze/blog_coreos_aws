@@ -345,6 +345,30 @@
                 "owner": "root",
                 "group": "root"
               },
+              "/etc/sysconfig/iptables" : {
+                "mode": "0644",
+                "owner": "root",
+                "group" : "root",
+                "content": {
+                  "Fn::Join": [ "",
+                    [
+                      "*nat\n",
+                      ":PREROUTING ACCEPT [0:0]\n",
+                      ":INPUT ACCEPT [0:0]\n",
+                      ":OUTPUT ACCEPT [0:0]\n",
+                      ":POSTROUTING ACCEPT [0:0]\n",
+                      "-A POSTROUTING -j MASQUERADE\n",
+                      "COMMIT\n",
+                      "*filter\n",
+                      ":INPUT ACCEPT [24:1716]\n",
+                      ":FORWARD ACCEPT [0:0]\n",
+                      ":OUTPUT ACCEPT [13:1552]\n",
+                      "-A FORWARD -j ACCEPT\n",
+                      "COMMIT\n"
+                    ]
+                  ]
+                }
+              },
               "/usr/local/bin/attach_eni.sh" : {
                 "mode": "0700",
                 "owner": "root",
@@ -423,8 +447,19 @@
         "DestinationCidrBlock": "0.0.0.0/0",
         "NetworkInterfaceId": { "Ref": "NATENI" }
       }
+    },
+    "TestInstance" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "ImageId": { "Fn::FindInMap": [ "NatRegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
+        "InstanceType": "t1.micro",
+        "KeyName": {"Ref": "KeyName"},
+        "SecurityGroupIds": [{"Ref": "NatSecurityGroup"}],
+        "SubnetId" : { "Ref" : "PrivateSubnet1" }
+      }
     }
   },
+
   "Outputs": {
     "NATIP": {
       "Description": "NAT IP address",
