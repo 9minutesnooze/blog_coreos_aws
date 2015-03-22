@@ -271,6 +271,17 @@
         "SourceSecurityGroupId": { "Ref": "NatSecurityGroup" }
       }
     },
+    "NatSecurityGroupIngressAllInternal": {
+      "DependsOn": [ "NatSecurityGroup" ],
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "CidrIp" : { "Fn::FindInMap": [ "SubnetConfig", "VPC", "CIDR" ] },
+        "GroupId": { "Ref": "NatSecurityGroup" },
+        "IpProtocol": "-1",
+        "FromPort": "0",
+        "ToPort": "65535"
+      }
+    },
 
     "NATIAMRole" : {
       "Type": "AWS::IAM::Role",
@@ -415,7 +426,8 @@
                 "/opt/aws/bin/cfn-init --region ", { "Ref" : "AWS::Region" },
                         " --stack ", { "Ref" : "AWS::StackName" },
                         " --resource NATLaunchConfig\n",
-                "/usr/local/bin/attach_eni.sh && sleep 60 && ifdown eth0\n"
+                "/usr/local/bin/attach_eni.sh && sleep 60 && ifdown eth0\n",
+                "/etc/init.d/iptables restart\n"
               ]
             ]
           }
@@ -436,6 +448,12 @@
           { "Key": "Stack", "Value": { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": true },
           { "Key": "Name", "Value": "NAT", "PropagateAtLaunch": true}
         ]
+      },
+      "UpdatePolicy" : {
+        "AutoScalingRollingUpdate" : {
+          "MinInstancesInService" : "0",
+          "MaxBatchSize" : "1"
+        }
       }
     },
 
@@ -446,16 +464,6 @@
         "RouteTableId": { "Ref": "PrivateRouteTable" },
         "DestinationCidrBlock": "0.0.0.0/0",
         "NetworkInterfaceId": { "Ref": "NATENI" }
-      }
-    },
-    "TestInstance" : {
-      "Type" : "AWS::EC2::Instance",
-      "Properties" : {
-        "ImageId": { "Fn::FindInMap": [ "NatRegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
-        "InstanceType": "t1.micro",
-        "KeyName": {"Ref": "KeyName"},
-        "SecurityGroupIds": [{"Ref": "NatSecurityGroup"}],
-        "SubnetId" : { "Ref" : "PrivateSubnet1" }
       }
     }
   },

@@ -3,50 +3,29 @@
   "Description": "CoreOS on EC2: http://coreos.com/docs/running-coreos/cloud-providers/ec2/",
   "Mappings" : {
       "RegionMap" : {
-
-          "eu-central-1" : {
-              "AMI" : "ami-9623128b"
-          },
-
-          "ap-northeast-1" : {
-              "AMI" : "ami-d6999dd7"
-          },
-
-          "sa-east-1" : {
-              "AMI" : "ami-79a41564"
-          },
-
-          "ap-southeast-2" : {
-              "AMI" : "ami-e1dfb1db"
-          },
-
-          "ap-southeast-1" : {
-              "AMI" : "ami-7598ba27"
-          },
-
-          "us-east-1" : {
-              "AMI" : "ami-343b195c"
-          },
-
-          "us-west-2" : {
-              "AMI" : "ami-d92377e9"
-          },
-
-          "us-west-1" : {
-              "AMI" : "ami-a7adbce2"
-          },
-
-          "eu-west-1" : {
-              "AMI" : "ami-c6e858b1"
-          }
-
+          "eu-central-1" : { "AMI" : "ami-9623128b" },
+          "ap-northeast-1" : { "AMI" : "ami-d6999dd7" },
+          "sa-east-1" : { "AMI" : "ami-79a41564" },
+          "ap-southeast-2" : { "AMI" : "ami-e1dfb1db" },
+          "ap-southeast-1" : { "AMI" : "ami-7598ba27" },
+          "us-east-1" : { "AMI" : "ami-343b195c" },
+          "us-west-2" : { "AMI" : "ami-d92377e9" },
+          "us-west-1" : { "AMI" : "ami-a7adbce2" },
+          "eu-west-1" : { "AMI" : "ami-c6e858b1" }
       }
   },
   "Parameters": {
+    "PublicSubnet1" : { "Description" : "PublicSubnet1", "Type" : "AWS::EC2::Subnet::Id" },
+    "PublicSubnet2" : { "Description" : "PublicSubnet2", "Type" : "AWS::EC2::Subnet::Id" },
+    "PublicSubnet3" : { "Description" : "PublicSubnet3", "Type" : "AWS::EC2::Subnet::Id" },
+    "PrivateSubnet1" : { "Description" : "PrivateSubnet1", "Type" : "AWS::EC2::Subnet::Id" },
+    "PrivateSubnet2" : { "Description" : "PrivateSubnet2", "Type" : "AWS::EC2::Subnet::Id" },
+    "PrivateSubnet3" : { "Description" : "PrivateSubnet3", "Type" : "AWS::EC2::Subnet::Id" },
+    "VPC" : { "Description" : "VPC Id", "Type" : "AWS::EC2::VPC::Id" },
     "AZs" : {
       "Description" : "Availability Zones to use (us-east-1a, us-east-1b, etc)",
       "Type" : "CommaDelimitedList",
-      "Default": "us-east-1a, us-east-1b, us-east-1e"
+      "Default": "us-east-1a, us-east-1c, us-east-1e"
     },
     "InstanceType" : {
       "Description" : "EC2 PV instance type (m3.medium, etc). Note: m1.small is not supported.",
@@ -84,9 +63,18 @@
     }
   },
   "Resources": {
+    "CoreOSELBSG" : {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId" : { "Ref" : "VPC" },
+        "GroupDescription": "CoreOS ELB SecurityGroup",
+        "SecurityGroupIngress": [ {"IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" } ]
+      }
+    },
     "CoreOSSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
+        "VpcId" : { "Ref" : "VPC" },
         "GroupDescription": "CoreOS SecurityGroup",
         "SecurityGroupIngress": [
           {"IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": {"Ref": "AllowSSHFrom"}}
@@ -96,7 +84,7 @@
     "Ingress8080": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
-        "GroupName": { "Ref": "CoreOSSecurityGroup"},
+        "GroupId": { "Ref": "CoreOSSecurityGroup"},
         "IpProtocol": "tcp",
         "FromPort": "8080",
         "ToPort": "8080",
@@ -106,7 +94,7 @@
     "Ingress4001": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
-        "GroupName": {"Ref": "CoreOSSecurityGroup"}, "IpProtocol": "tcp", "FromPort": "4001", "ToPort": "4001", "SourceSecurityGroupId": {
+        "GroupId": {"Ref": "CoreOSSecurityGroup"}, "IpProtocol": "tcp", "FromPort": "4001", "ToPort": "4001", "SourceSecurityGroupId": {
           "Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ]
         }
       }
@@ -114,19 +102,24 @@
     "Ingress7001": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
-        "GroupName": {"Ref": "CoreOSSecurityGroup"}, "IpProtocol": "tcp", "FromPort": "7001", "ToPort": "7001", "SourceSecurityGroupId": {
+        "GroupId": {"Ref": "CoreOSSecurityGroup"}, "IpProtocol": "tcp", "FromPort": "7001", "ToPort": "7001", "SourceSecurityGroupId": {
           "Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ]
-        } 
+        }
       }
     },
     "CoreOSELB": {
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties": {
-        "AvailabilityZones": {"Ref": "AZs"},
+        "Subnets": [
+          { "Ref": "PublicSubnet1" },
+          { "Ref": "PublicSubnet2" },
+          { "Ref": "PublicSubnet3" }
+        ],
         "ConnectionDrainingPolicy" : {
           "Enabled" : "true",
           "Timeout" : "30"
         },
+        "SecurityGroups" : [ { "Fn::GetAtt" : [ "CoreOSELBSG", "GroupId" ] } ],
         "CrossZone" : "true",
         "HealthCheck" : {
           "HealthyThreshold": 2,
@@ -148,7 +141,12 @@
     "CoreOSServerAutoScale": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
-        "AvailabilityZones": {"Ref": "AZs"},
+        "VPCZoneIdentifier": [
+          { "Ref": "PrivateSubnet1" },
+          { "Ref": "PrivateSubnet2" },
+          { "Ref": "PrivateSubnet3" }
+        ],
+        "AvailabilityZones": { "Ref" : "AZs" },
         "LaunchConfigurationName": {"Ref": "CoreOSServerLaunchConfig"},
         "MinSize": "1",
         "MaxSize": "6",
@@ -164,9 +162,8 @@
       "Properties": {
         "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
         "InstanceType": {"Ref": "InstanceType"},
-        "SpotPrice": "0.011",
         "KeyName": {"Ref": "KeyPair"},
-        "SecurityGroups": [{"Ref": "CoreOSSecurityGroup"}],
+        "SecurityGroups": [ {"Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ] } ],
         "UserData" : { "Fn::Base64":
           { "Fn::Join": [ "", [
             "#cloud-config\n\n",
