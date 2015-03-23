@@ -162,6 +162,7 @@
       "Properties": {
         "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
         "InstanceType": {"Ref": "InstanceType"},
+        "SpotPrice": "0.011",
         "KeyName": {"Ref": "KeyPair"},
         "SecurityGroups": [ {"Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ] } ],
         "UserData" : { "Fn::Base64":

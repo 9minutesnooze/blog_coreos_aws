@@ -9,6 +9,17 @@
       "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
     },
 
+    "NATInstanceType" : {
+      "Type" : "String",
+      "Default" : "t1.micro",
+      "AllowedValues" : ["t1.micro", "m1.small", "m1.large"],
+      "Description" : "Enter t1.micro, m1.small, or m1.large. Default is t1.micro."
+    },
+    "NATImageId" : {
+      "Type" : "String",
+      "Description" : "AMI to use for NAT Instance"
+    },
+
     "ServerAccess": {
       "Description": "CIDR IP range allowed to login to the NAT instance",
       "Type": "String",
@@ -29,9 +40,7 @@
       "Private1":  { "CIDR": "10.10.100.0/24", "AZ": "us-east-1a" },
       "Private2":  { "CIDR": "10.10.101.0/24", "AZ": "us-east-1c" },
       "Private3":  { "CIDR": "10.10.102.0/24", "AZ": "us-east-1e" }
-    },
-    "NatRegionMap": { "us-east-1": { "AMI": "ami-224dc94a" } },
-    "CoreOSRegionMap": { "us-east-1": { "AMI": "ami-343b195c" } }
+    }
   },
 
   "Resources": {
@@ -411,8 +420,8 @@
       "Properties": {
         "AssociatePublicIpAddress": "true",
         "IamInstanceProfile": { "Ref": "NATInstanceProfile" },
-        "ImageId": { "Fn::FindInMap": [ "NatRegionMap", { "Ref": "AWS::Region" }, "AMI" ] },
-        "InstanceType": "t1.micro",
+        "ImageId": { "Ref" : "NATImageId" },
+        "InstanceType": { "Ref" : "NATInstanceType" },
         "SpotPrice": "0.011",
         "KeyName": {"Ref": "KeyName"},
         "SecurityGroups": [{"Ref": "NatSecurityGroup"}],

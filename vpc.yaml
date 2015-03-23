@@ -1,0 +1,2 @@
+NATInstanceType: t1.micro
+NATImageId: ami-224dc94a
