@@ -1,2 +1,11 @@
 NATInstanceType: t1.micro
 NATImageId: ami-224dc94a
+AvailabilityZone1: us-east-1a
+AvailabilityZone2: us-east-1d
+AvailabilityZone3: us-east-1e
+PublicSubnet1CIDR: 10.10.0.0/24
+PublicSubnet2CIDR: 10.10.3.0/24
+PublicSubnet3CIDR: 10.10.2.0/24
+PrivateSubnet1CIDR: 10.10.100.0/24
+PrivateSubnet2CIDR: 10.10.103.0/24
+PrivateSubnet3CIDR: 10.10.102.0/24

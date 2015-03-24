@@ -15,6 +15,7 @@ echo "----------"
 STACKNAME='coreos'
 echo "Updating $STACKNAME Stack"
 rainbow -d cfn_resources:vpc \
+        -d yaml:vpc.yaml \
         -d yaml:${STACKNAME}.yaml \
         --update-stack-if-exists \
         --block \

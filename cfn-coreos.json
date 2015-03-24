@@ -2,22 +2,21 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "CoreOS on EC2: http://coreos.com/docs/running-coreos/cloud-providers/ec2/",
   "Parameters": {
+    "VPC" : { "Description" : "VPC Id", "Type" : "AWS::EC2::VPC::Id" },
     "PublicSubnet1" : { "Description" : "PublicSubnet1", "Type" : "AWS::EC2::Subnet::Id" },
     "PublicSubnet2" : { "Description" : "PublicSubnet2", "Type" : "AWS::EC2::Subnet::Id" },
     "PublicSubnet3" : { "Description" : "PublicSubnet3", "Type" : "AWS::EC2::Subnet::Id" },
     "PrivateSubnet1" : { "Description" : "PrivateSubnet1", "Type" : "AWS::EC2::Subnet::Id" },
     "PrivateSubnet2" : { "Description" : "PrivateSubnet2", "Type" : "AWS::EC2::Subnet::Id" },
     "PrivateSubnet3" : { "Description" : "PrivateSubnet3", "Type" : "AWS::EC2::Subnet::Id" },
+    "AvailabilityZone1" : { "Description" : "Availability Zone for ${SUBNET}1", "Type" : "String" },
+    "AvailabilityZone2" : { "Description" : "Availability Zone for ${SUBNET}2", "Type" : "String" },
+    "AvailabilityZone3" : { "Description" : "Availability Zone for ${SUBNET}3", "Type" : "String" },
+
     "CoreOSImageId" : {
       "Description": "Image for CoreOS",
       "Type" : "String",
       "Default" : "ami-343b195c"
-    },
-    "VPC" : { "Description" : "VPC Id", "Type" : "AWS::EC2::VPC::Id" },
-    "AZs" : {
-      "Description" : "Availability Zones to use (us-east-1a, us-east-1b, etc)",
-      "Type" : "CommaDelimitedList",
-      "Default": "us-east-1a, us-east-1c, us-east-1e"
     },
     "InstanceType" : {
       "Description" : "EC2 PV instance type (m3.medium, etc). Note: m1.small is not supported.",
@@ -138,7 +137,11 @@
           { "Ref": "PrivateSubnet2" },
           { "Ref": "PrivateSubnet3" }
         ],
-        "AvailabilityZones": { "Ref" : "AZs" },
+        "AvailabilityZones": [
+          { "Ref": "AvailabilityZone1" },
+          { "Ref": "AvailabilityZone2" },
+          { "Ref": "AvailabilityZone3" }
+        ],
         "LaunchConfigurationName": {"Ref": "CoreOSServerLaunchConfig"},
         "MinSize": "1",
         "MaxSize": "6",

@@ -2,6 +2,16 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "My Happy VPC",
   "Parameters": {
+    "PublicSubnet1CIDR" : { "Description" : "CIDR for PublicSubnet1", "Type" : "String" },
+    "PublicSubnet2CIDR" : { "Description" : "CIDR for PublicSubnet2", "Type" : "String" },
+    "PublicSubnet3CIDR" : { "Description" : "CIDR for PublicSubnet3", "Type" : "String" },
+    "PrivateSubnet1CIDR" : { "Description" : "CIDR for PrivateSubnet1", "Type" : "String" },
+    "PrivateSubnet2CIDR" : { "Description" : "CIDR for PrivateSubnet2", "Type" : "String" },
+    "PrivateSubnet3CIDR" : { "Description" : "CIDR for PrivateSubnet3", "Type" : "String" },
+    "AvailabilityZone1" : { "Description" : "Availability Zone for ${SUBNET}1", "Type" : "String" },
+    "AvailabilityZone2" : { "Description" : "Availability Zone for ${SUBNET}2", "Type" : "String" },
+    "AvailabilityZone3" : { "Description" : "Availability Zone for ${SUBNET}3", "Type" : "String" },
+
     "KeyName": {
       "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
       "Type": "AWS::EC2::KeyPair::KeyName",
@@ -28,19 +38,14 @@
       "Default": "0.0.0.0/0",
       "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
       "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x."
-    }
+    },
+    "AvailabilityZone1" : { "Description" : "Availability Zone for ${SUBNET}1", "Type" : "String" },
+    "AvailabilityZone2" : { "Description" : "Availability Zone for ${SUBNET}2", "Type" : "String" },
+    "AvailabilityZone3" : { "Description" : "Availability Zone for ${SUBNET}3", "Type" : "String" }
   },
 
   "Mappings": {
-    "SubnetConfig": {
-      "VPC":     { "CIDR": "10.10.0.0/16" },
-      "Public1":  { "CIDR": "10.10.0.0/24",    "AZ": "us-east-1a" },
-      "Public2":  { "CIDR": "10.10.3.0/24",    "AZ": "us-east-1d" },
-      "Public3":  { "CIDR": "10.10.2.0/24",    "AZ": "us-east-1e" },
-      "Private1":  { "CIDR": "10.10.100.0/24", "AZ": "us-east-1a" },
-      "Private2":  { "CIDR": "10.10.103.0/24", "AZ": "us-east-1d" },
-      "Private3":  { "CIDR": "10.10.102.0/24", "AZ": "us-east-1e" }
-    }
+    "SubnetConfig": { "VPC": { "CIDR": "10.10.0.0/16" } }
   },
 
   "Resources": {
@@ -60,8 +65,8 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Public1", "CIDR" ] },
-        "AvailabilityZone": { "Fn::FindInMap": [ "SubnetConfig", "Public1", "AZ" ] },
+        "CidrBlock": { "Ref" : "PublicSubnet1CIDR" },
+        "AvailabilityZone": { "Ref" : "AvailabilityZone1" },
         "Tags": [
           { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
           { "Key": "Network", "Value": "Public" },
@@ -74,8 +79,8 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Public2", "CIDR" ] },
-        "AvailabilityZone": { "Fn::FindInMap": [ "SubnetConfig", "Public2", "AZ" ] },
+        "CidrBlock": { "Ref" : "PublicSubnet2CIDR" },
+        "AvailabilityZone": { "Ref" : "AvailabilityZone2" },
         "Tags": [
           { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
           { "Key": "Network", "Value": "Public" },
@@ -88,8 +93,8 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Public3", "CIDR" ] },
-        "AvailabilityZone": { "Fn::FindInMap": [ "SubnetConfig", "Public3", "AZ" ] },
+        "CidrBlock": { "Ref" : "PublicSubnet3CIDR" },
+        "AvailabilityZone": { "Ref" : "AvailabilityZone3" },
         "Tags": [
           { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
           { "Key": "Network", "Value": "Public" },
@@ -164,8 +169,8 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Private1", "CIDR" ] },
-        "AvailabilityZone": { "Fn::FindInMap": [ "SubnetConfig", "Private1", "AZ" ] },
+        "CidrBlock": { "Ref" : "PrivateSubnet1CIDR" },
+        "AvailabilityZone": { "Ref" : "AvailabilityZone1" },
         "Tags": [
           { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
           { "Key": "Network", "Value": "Private" },
@@ -178,8 +183,8 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Private2", "CIDR" ] },
-        "AvailabilityZone": { "Fn::FindInMap": [ "SubnetConfig", "Private2", "AZ" ] },
+        "CidrBlock": { "Ref" : "PrivateSubnet2CIDR" },
+        "AvailabilityZone": { "Ref" : "AvailabilityZone2" },
         "Tags": [
           { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
           { "Key": "Network", "Value": "Private" },
@@ -192,8 +197,8 @@
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": { "Ref": "VPC" },
-        "CidrBlock": { "Fn::FindInMap": [ "SubnetConfig", "Private3", "CIDR" ] },
-        "AvailabilityZone": { "Fn::FindInMap": [ "SubnetConfig", "Private3", "AZ" ] },
+        "CidrBlock": { "Ref" : "PrivateSubnet3CIDR" },
+        "AvailabilityZone": { "Ref" : "AvailabilityZone3" },
         "Tags": [
           { "Key": "Application", "Value": { "Ref": "AWS::StackName" } },
           { "Key": "Network", "Value": "Private" },
