@@ -35,10 +35,10 @@
     "SubnetConfig": {
       "VPC":     { "CIDR": "10.10.0.0/16" },
       "Public1":  { "CIDR": "10.10.0.0/24",    "AZ": "us-east-1a" },
-      "Public2":  { "CIDR": "10.10.1.0/24",    "AZ": "us-east-1c" },
+      "Public2":  { "CIDR": "10.10.3.0/24",    "AZ": "us-east-1d" },
       "Public3":  { "CIDR": "10.10.2.0/24",    "AZ": "us-east-1e" },
       "Private1":  { "CIDR": "10.10.100.0/24", "AZ": "us-east-1a" },
-      "Private2":  { "CIDR": "10.10.101.0/24", "AZ": "us-east-1c" },
+      "Private2":  { "CIDR": "10.10.103.0/24", "AZ": "us-east-1d" },
       "Private3":  { "CIDR": "10.10.102.0/24", "AZ": "us-east-1e" }
     }
   },
@@ -457,12 +457,6 @@
           { "Key": "Stack", "Value": { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": true },
           { "Key": "Name", "Value": "NAT", "PropagateAtLaunch": true}
         ]
-      },
-      "UpdatePolicy" : {
-        "AutoScalingRollingUpdate" : {
-          "MinInstancesInService" : "0",
-          "MaxBatchSize" : "1"
-        }
       }
     },
 

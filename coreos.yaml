@@ -1,3 +1,4 @@
-DiscoveryURL: https://discovery.etcd.io/37c14b5ac307f045cb57068bec175c63
-AZs: us-east-1a, us-east-1c, us-east-1e
+DiscoveryURL: https://discovery.etcd.io/b82fbd657af4304a13db1041a7d61b38
+AZs: us-east-1a, us-east-1d, us-east-1e
+CoreOSImageId: ami-40715d28
 InstanceType: t1.micro

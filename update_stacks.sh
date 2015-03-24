@@ -8,7 +8,7 @@ echo "Updating $STACKNAME Stack"
 rainbow -d yaml:${STACKNAME}.yaml \
         --update-stack-if-exists \
         --block \
-        $STACKNAME cfn-vpc.json
+        $STACKNAME cfn-${STACKNAME}.json
 
 echo "----------"
 
@@ -18,4 +18,4 @@ rainbow -d cfn_resources:vpc \
         -d yaml:${STACKNAME}.yaml \
         --update-stack-if-exists \
         --block \
-        $STACKNAME coreos-alpha-pv.json
+        $STACKNAME cfn-${STACKNAME}.json

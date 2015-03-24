@@ -1,19 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "CoreOS on EC2: http://coreos.com/docs/running-coreos/cloud-providers/ec2/",
-  "Mappings" : {
-      "RegionMap" : {
-          "eu-central-1" : { "AMI" : "ami-9623128b" },
-          "ap-northeast-1" : { "AMI" : "ami-d6999dd7" },
-          "sa-east-1" : { "AMI" : "ami-79a41564" },
-          "ap-southeast-2" : { "AMI" : "ami-e1dfb1db" },
-          "ap-southeast-1" : { "AMI" : "ami-7598ba27" },
-          "us-east-1" : { "AMI" : "ami-343b195c" },
-          "us-west-2" : { "AMI" : "ami-d92377e9" },
-          "us-west-1" : { "AMI" : "ami-a7adbce2" },
-          "eu-west-1" : { "AMI" : "ami-c6e858b1" }
-      }
-  },
   "Parameters": {
     "PublicSubnet1" : { "Description" : "PublicSubnet1", "Type" : "AWS::EC2::Subnet::Id" },
     "PublicSubnet2" : { "Description" : "PublicSubnet2", "Type" : "AWS::EC2::Subnet::Id" },
@@ -21,6 +8,11 @@
     "PrivateSubnet1" : { "Description" : "PrivateSubnet1", "Type" : "AWS::EC2::Subnet::Id" },
     "PrivateSubnet2" : { "Description" : "PrivateSubnet2", "Type" : "AWS::EC2::Subnet::Id" },
     "PrivateSubnet3" : { "Description" : "PrivateSubnet3", "Type" : "AWS::EC2::Subnet::Id" },
+    "CoreOSImageId" : {
+      "Description": "Image for CoreOS",
+      "Type" : "String",
+      "Default" : "ami-343b195c"
+    },
     "VPC" : { "Description" : "VPC Id", "Type" : "AWS::EC2::VPC::Id" },
     "AZs" : {
       "Description" : "Availability Zones to use (us-east-1a, us-east-1b, etc)",
@@ -31,8 +23,8 @@
       "Description" : "EC2 PV instance type (m3.medium, etc). Note: m1.small is not supported.",
       "Type" : "String",
       "Default" : "t1.micro",
-      "AllowedValues" : ["m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge", "m1.medium", "m1.large", "m1.xlarge", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c1.medium", "c1.xlarge", "m2.xlarge", "m2.2xlarge", "m2.4xlarge", "hi1.4xlarge", "hs1.8xlarge", "t1.micro"],
-      "ConstraintDescription" : "Must be a valid EC2 PV instance type. Note: m1.small is not supported."
+      "AllowedValues" : ["m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge", "m1.medium", "m1.large", "m1.xlarge", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c1.medium", "c1.xlarge", "m2.xlarge", "m2.2xlarge", "m2.4xlarge", "hi1.4xlarge", "hs1.8xlarge", "t1.micro", "t2.micro"],
+      "ConstraintDescription" : "Must be a valid EC2 instance type. Note: m1.small is not supported."
     },
     "ClusterSize": {
       "Default": "3",
@@ -155,14 +147,18 @@
             {"Key": "Name", "Value": { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": true}
         ],
         "LoadBalancerNames" : [ { "Ref" : "CoreOSELB" } ]
+      },
+      "UpdatePolicy" : {
+        "AutoScalingRollingUpdate" : {
+          "MinInstancesInService" : "1"
+        }
       }
     },
     "CoreOSServerLaunchConfig": {
       "Type": "AWS::AutoScaling::LaunchConfiguration",
       "Properties": {
-        "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "AMI" ]},
+        "ImageId" : { "Ref" : "CoreOSImageId" },
         "InstanceType": {"Ref": "InstanceType"},
-        "SpotPrice": "0.011",
         "KeyName": {"Ref": "KeyPair"},
         "SecurityGroups": [ {"Fn::GetAtt" : [ "CoreOSSecurityGroup", "GroupId" ] } ],
         "UserData" : { "Fn::Base64":
@@ -182,6 +178,8 @@
             "      command: start\n",
             "    - name: fleet.service\n",
             "      command: start\n",
+            "    - name: docker.service\n",
+            "      command: start\n",
             "    - name: blog.service\n",
             "      command: start\n",
             "      content: |\n",
@@ -189,7 +187,6 @@
             "        Description=Blog\n",
             "        After=docker.service\n",
             "        Requires=docker.service\n",
-            "\n",
             "        [Service]\n",
             "        TimeoutStartSec=0\n",
             "        ExecStartPre=-/usr/bin/docker kill blog\n",
@@ -197,7 +194,6 @@
             "        ExecStartPre=/usr/bin/docker pull aaronbbrown/blog\n",
             "        ExecStart=/usr/bin/docker run --rm --name blog -p 8080:80 aaronbbrown/blog\n",
             "        ExecStop=/usr/bin/docker stop blog\n",
-            "\n",
             "        [X-Fleet]\n",
             "        Global=true\n",
             "        MachineMetadata=region=", { "Ref" : "AWS::Region" }, "\n"
