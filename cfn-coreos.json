@@ -12,6 +12,7 @@
     "AvailabilityZone1" : { "Description" : "Availability Zone for ${SUBNET}1", "Type" : "String" },
     "AvailabilityZone2" : { "Description" : "Availability Zone for ${SUBNET}2", "Type" : "String" },
     "AvailabilityZone3" : { "Description" : "Availability Zone for ${SUBNET}3", "Type" : "String" },
+    "SpotPrice" : { "Description" : "Spot Pricing for instances", "Type" : "String" },
 
     "CoreOSImageId" : {
       "Description": "Image for CoreOS",
@@ -150,11 +151,6 @@
             {"Key": "Name", "Value": { "Ref" : "AWS::StackName" }, "PropagateAtLaunch": true}
         ],
         "LoadBalancerNames" : [ { "Ref" : "CoreOSELB" } ]
-      },
-      "UpdatePolicy" : {
-        "AutoScalingRollingUpdate" : {
-          "MinInstancesInService" : "1"
-        }
       }
     },
     "CoreOSServerLaunchConfig": {
