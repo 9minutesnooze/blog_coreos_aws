@@ -2,3 +2,4 @@ DiscoveryURL: https://discovery.etcd.io/4ab1a686fa1896ec07b8280586214a5d
 CoreOSImageId: ami-3f53b454
 InstanceType: t1.micro
 SpotPrice: 0.011
+SysDigAccessKey: 03cc1511-165b-478e-879d-d0a881a3b58f

@@ -37,6 +37,10 @@
       "Description": "An unique etcd cluster discovery URL. Grab a new token from https://discovery.etcd.io/new",
       "Type": "String"
     },
+    "SysDigAccessKey": {
+      "Description": "SysDig Cloud Access Key",
+      "Type": "String"
+    },
     "AdvertisedIPAddress": {
       "Description": "Use 'private' if your etcd cluster is within one region or 'public' if it spans regions or cloud providers.",
       "Default": "private",
@@ -203,7 +207,26 @@
             "        ExecStop=/usr/bin/docker stop blog\n",
             "        [X-Fleet]\n",
             "        Global=true\n",
-            "        MachineMetadata=region=", { "Ref" : "AWS::Region" }, "\n"
+            "        MachineMetadata=region=", { "Ref" : "AWS::Region" }, "\n",
+            "    - name: sysdig_agent\n",
+            "      command: start\n",
+            "      content: | \n",
+            "        [Unit]\n",
+            "        Description=Sysdig Cloud Agent\n",
+            "        After=docker.service\n",
+            "        Requires=docker.service\n",
+            "        [Service]\n",
+            "        TimeoutStartSec=0\n",
+            "        ExecStartPre=-/usr/bin/docker kill sysdig-agent\n",
+            "        ExecStartPre=-/usr/bin/docker rm sysdig-agent\n",
+            "        ExecStartPre=/usr/bin/docker pull sysdig/agent\n",
+            "        ExecStart=/usr/bin/docker run --name sysdig-agent --privileged --net host",
+                               " -e ACCESS_KEY=", { "Ref" : "SysDigAccessKey" },
+                               " -v /var/run/docker.sock:/host/var/run/docker.sock",
+                               " -v /dev:/host/dev -v /proc:/host/proc:ro -v /boot:/host/boot:ro sysdig/agent\n",
+            "        ExecStop=/usr/bin/docker stop sysdig-agent\n",
+            "        [X-Fleet]\n",
+            "        Global=true\n"
             ] ]
           }
         }
